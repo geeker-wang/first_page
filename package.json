@@ -5,9 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vue-tsc && vite build",
+    "build": "tsc && vite build",
     "preview": "vite preview",
-    "type-check": "vue-tsc --noEmit",
+    "type-check": "tsc --noEmit",
     "deploy": "npm run build && gh-pages -d dist"
   },
   "dependencies": {
