@@ -4,7 +4,17 @@
 
 ## 📋 手动创建步骤
 
-### 1. 在 GitHub 网站上创建 Actions 文件
+### 1. 确保 package-lock.json 存在
+
+在本地运行以下命令生成锁文件：
+```bash
+npm install --package-lock-only
+git add package-lock.json
+git commit -m "Add package-lock.json"
+git push origin main
+```
+
+### 2. 在 GitHub 网站上创建 Actions 文件
 
 访问你的 GitHub 仓库，然后：
 
@@ -72,6 +82,69 @@ jobs:
 ```
 
 4. 点击 **Commit new file** 提交
+
+### 3. 备用方案（如果不想使用 package-lock.json）
+
+如果不想生成 package-lock.json，可以使用以下配置：
+
+```yaml
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install  # 使用 npm install 而不是 npm ci
+
+      - name: TypeScript Type Check
+        run: npm run type-check
+
+      - name: Build
+        run: npm run build
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './dist'
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+```
 
 ### 2. 启用 GitHub Pages
 
