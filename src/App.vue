@@ -38,12 +38,19 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref } from 'vue'
 
-const count = ref(0)
+// 定义 Feature 接口
+interface Feature {
+  icon: string
+  title: string
+  desc: string
+}
 
-const features = ref([
+const count = ref<number>(0)
+
+const features = ref<Feature[]>([
   {
     icon: '⚡',
     title: '快速开发',
@@ -66,15 +73,15 @@ const features = ref([
   }
 ])
 
-function increment() {
+function increment(): void {
   count.value++
 }
 
-function decrement() {
+function decrement(): void {
   count.value--
 }
 
-function reset() {
+function reset(): void {
   count.value = 0
 }
 </script>

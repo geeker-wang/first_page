@@ -1,22 +1,23 @@
 # first_page 🚀
 
-这是一个使用 Vue 3 + Vite 构建的现代化网站项目，部署在 GitHub Pages 上。
+这是一个使用 **Vue 3 + TypeScript + Vite** 构建的现代化网站项目，部署在 GitHub Pages 上。
 
 ## 📁 项目结构
 
 ```
 first_page/
 ├── src/
-│   ├── main.js           # Vue 入口文件
-│   ├── App.vue           # 主组件
+│   ├── main.ts           # Vue 入口文件 (TypeScript)
+│   ├── App.vue           # 主组件 (TypeScript 支持)
+│   ├── env.d.ts          # TypeScript 环境类型定义
 │   └── components/       # Vue 组件目录
-├── public/               # 静态资源
 ├── .github/
 │   └── workflows/
 │       └── deploy.yml    # GitHub Actions 自动部署
 ├── index.html            # HTML 入口
-├── package.json          # 项目依赖
-├── vite.config.js        # Vite 配置
+├── package.json          # 项目依赖和脚本
+├── vite.config.ts        # Vite 配置 (TypeScript)
+├── tsconfig.json         # TypeScript 配置
 ├── CNAME                 # 自定义域名配置（可选）
 └── README.md             # 说明文档
 ```
@@ -28,14 +29,15 @@ first_page/
 1. **安装依赖并本地测试**
    ```bash
    npm install
-   npm run dev  # 本地开发测试
-   npm run build  # 构建生产版本
+   npm run dev          # 本地开发测试
+   npm run type-check   # TypeScript 类型检查
+   npm run build        # 构建生产版本（包含类型检查）
    ```
 
 2. **推送代码到 GitHub**
    ```bash
    git add .
-   git commit -m "Add Vue 3 + Vite project with GitHub Actions"
+   git commit -m "Add Vue 3 + TypeScript + Vite project"
    git push origin main
    ```
 
@@ -84,18 +86,42 @@ npm install
 # 启动开发服务器
 npm run dev
 
-# 构建生产版本
+# TypeScript 类型检查
+npm run type-check
+
+# 构建生产版本（自动包含类型检查）
 npm run build
 
 # 预览构建结果
 npm run preview
 ```
 
+### TypeScript 特性
+
+**类型定义** (`src/App.vue`)：
+```typescript
+// 定义接口
+interface Feature {
+  icon: string
+  title: string
+  desc: string
+}
+
+// 带类型的 ref
+const count = ref<number>(0)
+const features = ref<Feature[]>([/* ... */])
+
+// 带类型的函数
+function increment(): void {
+  count.value++
+}
+```
+
 ### 自定义页面
 
 **修改 Vue 组件** (`src/App.vue`)：
 - 编辑 `<template>` 部分修改页面结构
-- 修改 `<script setup>` 中的逻辑
+- 修改 `<script setup lang="ts">` 中的 TypeScript 逻辑
 - 调整 `<style>` 中的样式
 
 **添加新组件**：
