@@ -1,0 +1,88 @@
+name: 自动抓取知乎热榜
+
+on:
+  # 定时触发（每30分钟）
+  schedule:
+    - cron: '0 */30 * * * *'
+
+  # 手动触发
+  workflow_dispatch:
+
+  # 推送到 main 分支时也可触发（测试用）
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/fetch-hot.yml'
+      - 'scripts/fetch.js'
+
+# 权限配置
+permissions:
+  contents: write
+
+jobs:
+  fetch-and-save:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. 检出代码
+      - name: 📥 检出代码
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0  # 获取完整历史
+
+      # 2. 设置 Node.js
+      - name: ⚙️ 设置 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      # 3. 安装依赖
+      - name: 📦 安装依赖
+        run: |
+          npm install axios
+
+      # 4. 执行抓取
+      - name: 🕷️ 执行抓取脚本
+        run: node scripts/fetch.js
+
+      # 5. 配置 Git
+      - name: 🔧 配置 Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      # 6. 检查文件变化
+      - name: 🔍 检查变化
+        id: check_changes
+        run: |
+          if git diff --quiet data/zhihu-hot.json; then
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+            echo "没有数据变化"
+          else
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+            echo "检测到数据变化"
+          fi
+
+      # 7. 提交和推送
+      - name: 💾 提交数据
+        if: steps.check_changes.outputs.has_changes == 'true'
+        run: |
+          git add data/zhihu-hot.json
+          git commit -m "chore: 更新知乎热榜数据 $(date '+%Y-%m-%d %H:%M')"
+          git push
+
+      # 8. 总结
+      - name: 📊 总结
+        if: always()
+        run: |
+          echo "## 抓取结果" >> $GITHUB_STEP_SUMMARY
+          echo "- 时间: $(date '+%Y-%m-%d %H:%M:%S')" >> $GITHUB_STEP_SUMMARY
+          echo "- 状态: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.check_changes.outputs.has_changes }}" == "true" ]; then
+            echo "- 数据: ✅ 已更新" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- 数据: ⚠️ 无变化" >> $GITHUB_STEP_SUMMARY
+          fi
