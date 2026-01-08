@@ -3,36 +3,46 @@
     <div class="container">
       <div class="header">
         <div class="logo">🚀</div>
-        <h1>欢迎使用 Vue + GitHub Pages</h1>
-        <p class="subtitle">现代化的单页应用部署方案</p>
+        <h1>知乎热榜监控系统</h1>
+        <p class="subtitle">Vue 3 + TypeScript + GitHub Pages + 自动化部署</p>
       </div>
 
-      <div class="counter-section">
-        <div class="counter">{{ count }}</div>
-        <div class="buttons">
-          <button @click="decrement" class="btn btn-danger">-</button>
-          <button @click="increment" class="btn btn-primary">+</button>
-          <button @click="reset" class="btn btn-secondary">重置</button>
+      <!-- 知乎热榜组件 -->
+      <ZhihuHot />
+
+      <div class="divider"></div>
+
+      <!-- 原始功能区域 -->
+      <div class="original-section">
+        <h2>🎯 原始演示功能</h2>
+
+        <div class="counter-section">
+          <div class="counter">{{ count }}</div>
+          <div class="buttons">
+            <button @click="decrement" class="btn btn-danger">-</button>
+            <button @click="increment" class="btn btn-primary">+</button>
+            <button @click="reset" class="btn btn-secondary">重置</button>
+          </div>
         </div>
-      </div>
 
-      <div class="features">
-        <div class="feature-card" v-for="feature in features" :key="feature.title">
-          <div class="icon">{{ feature.icon }}</div>
-          <h3>{{ feature.title }}</h3>
-          <p>{{ feature.desc }}</p>
+        <div class="features">
+          <div class="feature-card" v-for="feature in features" :key="feature.title">
+            <div class="icon">{{ feature.icon }}</div>
+            <h3>{{ feature.title }}</h3>
+            <p>{{ feature.desc }}</p>
+          </div>
         </div>
-      </div>
 
-      <div class="actions">
-        <a href="https://vitejs.dev" target="_blank" class="btn-link">Vite Docs</a>
-        <a href="https://vuejs.org" target="_blank" class="btn-link">Vue Docs</a>
-        <a href="https://docs.github.com/pages" target="_blank" class="btn-link">GitHub Pages</a>
+        <div class="actions">
+          <a href="https://vitejs.dev" target="_blank" class="btn-link">Vite Docs</a>
+          <a href="https://vuejs.org" target="_blank" class="btn-link">Vue Docs</a>
+          <a href="https://docs.github.com/pages" target="_blank" class="btn-link">GitHub Pages</a>
+        </div>
       </div>
 
       <div class="footer">
-        <p>使用 Vue 3 + Vite 构建</p>
-        <p>部署于 {{ new Date().getFullYear() }}</p>
+        <p>使用 Vue 3 + TypeScript + Vite 构建</p>
+        <p>部署于 {{ new Date().getFullYear() }} | GitHub Actions 自动部署</p>
       </div>
     </div>
   </div>
@@ -40,6 +50,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import ZhihuHot from '@/components/ZhihuHot.vue'
 
 // 定义 Feature 接口
 interface Feature {
@@ -102,10 +113,11 @@ body {
 
 #app {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   min-height: 100vh;
   padding: 20px;
+  padding-top: 40px;
 }
 
 .container {
@@ -113,9 +125,27 @@ body {
   border-radius: 20px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
   padding: 40px;
-  max-width: 900px;
+  max-width: 1000px;
   width: 100%;
   animation: fadeInUp 0.6s ease-out;
+}
+
+.divider {
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #e2e8f0, transparent);
+  margin: 40px 0;
+  border-radius: 1px;
+}
+
+.original-section {
+  margin-top: 20px;
+}
+
+.original-section h2 {
+  text-align: center;
+  color: #2d3748;
+  margin-bottom: 25px;
+  font-size: 1.5em;
 }
 
 @keyframes fadeInUp {
