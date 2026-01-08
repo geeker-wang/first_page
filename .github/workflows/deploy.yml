@@ -1,0 +1,79 @@
+# 🚀 自动构建和部署到 GitHub Pages
+name: 自动构建和部署
+
+on:
+  # 推送到 main 分支时触发
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'vite.config.ts'
+      - 'tsconfig.json'
+      - 'package.json'
+      - '.github/workflows/deploy.yml'
+
+  # 手动触发
+  workflow_dispatch:
+
+# 授予工作流写入权限
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  # 构建任务
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 检出代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: ⚙️ 设置 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: 📦 安装依赖
+        run: npm ci
+
+      - name: 🔨 构建项目
+        run: npm run build
+
+      - name: 📦 打包构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  # 部署任务
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 下载构建产物
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: 🚀 部署到 GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          destination_dir: ./
+          keep_files: false
+          force_orphan: true
+          user_name: 'github-actions[bot]'
+          user_email: 'github-actions[bot]@users.noreply.github.com'
+
+      - name: 📊 部署完成
+        run: |
+          echo "✅ 部署成功！"
+          echo "访问地址: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
