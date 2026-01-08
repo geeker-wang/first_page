@@ -4,7 +4,7 @@
       <div class="header">
         <div class="logo">🚀</div>
         <h1>知乎热榜监控系统</h1>
-        <p class="subtitle">Vue 3 + TypeScript + GitHub Pages + 自动化部署</p>
+        <p class="subtitle">Vue 3 + TypeScript + GitHub Actions + GitHub API 存储</p>
       </div>
 
       <!-- 知乎热榜组件 -->
@@ -36,7 +36,7 @@
         <div class="actions">
           <a href="https://vitejs.dev" target="_blank" class="btn-link">Vite Docs</a>
           <a href="https://vuejs.org" target="_blank" class="btn-link">Vue Docs</a>
-          <a href="https://docs.github.com/pages" target="_blank" class="btn-link">GitHub Pages</a>
+          <a href="https://docs.github.com/actions" target="_blank" class="btn-link">GitHub Actions Docs</a>
         </div>
       </div>
 

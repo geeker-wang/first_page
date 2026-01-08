@@ -39,32 +39,6 @@ export interface HotSnapshot {
 }
 
 /**
- * GitHub 存储配置
- */
-export interface GitHubConfig {
-  /** GitHub 用户名 */
-  username: string;
-  /** 仓库名 */
-  repo: string;
-  /** GitHub Token（用于写入） */
-  token?: string;
-  /** 数据文件路径 */
-  dataPath: string;
-}
-
-/**
- * 定时任务配置
- */
-export interface ScheduleConfig {
-  /** 是否启用自动抓取 */
-  enabled: boolean;
-  /** 抓取间隔（分钟） */
-  interval: number;
-  /** 下次抓取时间 */
-  nextFetch?: number;
-}
-
-/**
  * 应用状态
  */
 export interface AppState {
@@ -78,8 +52,4 @@ export interface AppState {
   lastFetchTime?: number;
   /** 错误信息 */
   error?: string;
-  /** 定时任务配置 */
-  schedule: ScheduleConfig;
-  /** GitHub 配置 */
-  github: GitHubConfig;
 }

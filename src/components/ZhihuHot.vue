@@ -3,10 +3,10 @@
     <!-- 标题区域 -->
     <div class="section-header">
       <h2>🔥 知乎热榜监控</h2>
-      <p class="subtitle">实时抓取 + 历史数据 + GitHub 自动保存</p>
+      <p class="subtitle">GitHub Actions 自动抓取 + GitHub API 存储</p>
     </div>
 
-    <!-- 配置面板 -->
+    <!-- GitHub 配置 -->
     <div class="config-panel">
       <div class="config-group">
         <label>GitHub 用户名</label>
@@ -25,16 +25,6 @@
           placeholder="first_page"
           :disabled="isConfigured"
         />
-      </div>
-      <div class="config-group">
-        <label>GitHub Token</label>
-        <input
-          v-model="config.token"
-          type="password"
-          placeholder="ghp_xxxxxxxxxxxx"
-          :disabled="isConfigured"
-        />
-        <small class="hint">Token 仅保存在本地浏览器中</small>
       </div>
       <div class="config-group">
         <label>数据文件路径</label>
@@ -63,12 +53,15 @@
         </button>
         <button
           v-if="isConfigured"
-          @click="testGitHub"
+          @click="testConnection"
           class="btn btn-info"
           :disabled="isTesting"
         >
           {{ isTesting ? '测试中...' : '测试连接' }}
         </button>
+      </div>
+      <div class="config-hint">
+        💡 提示：GitHub Actions 会每30分钟自动抓取并保存数据
       </div>
     </div>
 
@@ -76,41 +69,38 @@
     <div class="control-panel" v-if="isConfigured">
       <div class="control-group">
         <button
-          @click="manualFetch"
+          @click="loadData"
           class="btn btn-primary"
-          :disabled="isFetching"
-        >
-          {{ isFetching ? '抓取中...' : '手动抓取' }}
-        </button>
-        <button
-          @click="toggleAutoFetch"
-          class="btn"
-          :class="autoFetchEnabled ? 'btn-danger' : 'btn-success'"
-          :disabled="isFetching"
-        >
-          {{ autoFetchEnabled ? '停止自动抓取' : '启用自动抓取' }}
-        </button>
-        <button
-          @click="loadFromGitHub"
-          class="btn btn-info"
           :disabled="isLoading"
         >
           {{ isLoading ? '加载中...' : '从 GitHub 加载' }}
         </button>
+        <button
+          @click="loadLatest"
+          class="btn btn-success"
+          :disabled="isLoading"
+        >
+          加载最新
+        </button>
+        <button
+          @click="showStats"
+          class="btn btn-info"
+          :disabled="isLoading"
+        >
+          统计信息
+        </button>
+        <button
+          @click="triggerManualFetch"
+          class="btn btn-warning"
+          :disabled="isFetching"
+        >
+          {{ isFetching ? '触发中...' : '手动触发抓取' }}
+        </button>
       </div>
 
-      <div class="schedule-config">
-        <label>自动抓取间隔（分钟）:</label>
-        <input
-          v-model.number="interval"
-          type="number"
-          min="5"
-          max="1440"
-          style="width: 80px;"
-        />
-        <span v-if="nextFetchTime" class="next-fetch">
-          下次抓取: {{ nextFetchTime }}
-        </span>
+      <div class="cache-info">
+        <span>本地缓存: {{ cacheStatus }}</span>
+        <button @click="clearCache" class="btn btn-sm">清除缓存</button>
       </div>
     </div>
 
@@ -164,7 +154,7 @@
     <div class="snapshots-section" v-if="snapshots.length > 0">
       <div class="section-title">
         <h3>📚 历史快照 ({{ snapshots.length }}条)</h3>
-        <button @click="clearHistory" class="btn btn-danger btn-sm">清空历史</button>
+        <button @click="clearHistory" class="btn btn-danger btn-sm">清空本地历史</button>
       </div>
 
       <div class="snapshots-list">
@@ -198,54 +188,61 @@
     </div>
 
     <!-- 空状态 -->
-    <div class="empty-state" v-if="!isFetching && currentHot.length === 0 && !error">
+    <div class="empty-state" v-if="!isLoading && currentHot.length === 0 && !error">
       <div class="empty-icon">🔍</div>
-      <div class="empty-text">暂无数据，请配置 GitHub 信息后点击"手动抓取"</div>
+      <div class="empty-text">暂无数据，请配置 GitHub 信息后点击"从 GitHub 加载"</div>
       <div class="empty-hint">
-        💡 提示：配置 Token 后数据会自动保存到 GitHub<br/>
-        📝 数据文件路径: {{ config.dataPath || 'data/zhihu-hot.json' }}
+        💡 提示：<br/>
+        1. 配置 GitHub 仓库信息<br/>
+        2. 点击"测试连接"验证<br/>
+        3. 点击"从 GitHub 加载"查看数据<br/>
+        4. GitHub Actions 会自动定时抓取
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
-import type { ZhihuHotItem, HotSnapshot, GitHubConfig, ScheduleConfig } from '@/types/zhihu'
-import { zhihuCrawler } from '@/services/zhihuCrawler'
-import { initGitHubStorage, githubStorage } from '@/services/githubStorage'
-import { initScheduler, scheduler } from '@/services/scheduler'
+import { ref, computed, onMounted } from 'vue'
+import type { ZhihuHotItem, HotSnapshot } from '@/types/zhihu'
+
+// 配置接口
+interface GitHubConfig {
+  username: string
+  repo: string
+  dataPath: string
+}
 
 // 配置状态
 const config = ref<GitHubConfig>({
-  username: '',
+  username: 'geeker-wang',
   repo: 'first_page',
-  token: '',
   dataPath: 'data/zhihu-hot.json'
 })
 
 // 应用状态
 const currentHot = ref<ZhihuHotItem[]>([])
 const snapshots = ref<HotSnapshot[]>([])
-const isFetching = ref(false)
 const isLoading = ref(false)
 const isTesting = ref(false)
+const isFetching = ref(false)
 const lastFetchTime = ref<number | undefined>()
 const error = ref('')
 const statusMessage = ref('')
 const statusType = ref<'info' | 'success' | 'warning'>('info')
-
-// 定时任务状态
-const autoFetchEnabled = ref(false)
-const interval = ref<number>(30) // 默认30分钟
-const nextFetchTime = ref<string>('')
-
-// UI 状态
 const expandedSnapshots = ref<Set<string>>(new Set())
+
+// 缓存状态
+const cacheStatus = computed(() => {
+  const cached = localStorage.getItem('zhihu_cache_timestamp')
+  if (!cached) return '无'
+  const time = new Date(parseInt(cached))
+  return time.toLocaleString('zh-CN')
+})
 
 // 计算属性
 const isConfigured = computed(() => {
-  return !!config.value.username && !!config.value.repo && !!config.value.token
+  return !!config.value.username && !!config.value.repo
 })
 
 const canSaveConfig = computed(() => {
@@ -254,8 +251,7 @@ const canSaveConfig = computed(() => {
 
 const lastUpdateTime = computed(() => {
   if (!lastFetchTime.value) return '暂无'
-  const date = new Date(lastFetchTime.value)
-  return date.toLocaleString('zh-CN')
+  return new Date(lastFetchTime.value).toLocaleString('zh-CN')
 })
 
 // 方法
@@ -273,10 +269,6 @@ const showError = (message: string) => {
   error.value = message
 }
 
-const clearError = () => {
-  error.value = ''
-}
-
 const formatNumber = (num: number): string => {
   if (num >= 1000000) {
     return (num / 1000000).toFixed(1) + 'M'
@@ -289,58 +281,35 @@ const formatNumber = (num: number): string => {
 // 配置管理
 const saveConfig = () => {
   try {
-    // 保存到 localStorage
-    localStorage.setItem('zhihu_config', JSON.stringify(config.value))
-
-    // 初始化 GitHub 存储
-    initGitHubStorage(config.value)
-
+    localStorage.setItem('zhihu_github_config', JSON.stringify(config.value))
     showStatus('✅ 配置已保存', 'success')
-
-    // 自动从 GitHub 加载数据
-    loadFromGitHub()
-
+    // 自动测试连接
+    testConnection()
   } catch (e) {
     showError(`保存配置失败: ${e instanceof Error ? e.message : '未知错误'}`)
   }
 }
 
 const resetConfig = () => {
-  if (confirm('确定要重置配置吗？这将清除本地保存的 Token 等信息。')) {
-    localStorage.removeItem('zhihu_config')
+  if (confirm('确定要重置配置吗？')) {
+    localStorage.removeItem('zhihu_github_config')
     config.value = {
       username: '',
       repo: 'first_page',
-      token: '',
       dataPath: 'data/zhihu-hot.json'
     }
     currentHot.value = []
     snapshots.value = []
-    autoFetchEnabled.value = false
-    if (scheduler) {
-      scheduler.stop()
-    }
     showStatus('⚠️ 配置已重置', 'warning')
   }
 }
 
 const loadConfig = () => {
-  const saved = localStorage.getItem('zhihu_config')
+  const saved = localStorage.getItem('zhihu_github_config')
   if (saved) {
     try {
       const parsed = JSON.parse(saved)
       config.value = { ...config.value, ...parsed }
-
-      if (config.value.token) {
-        initGitHubStorage(config.value)
-      }
-
-      // 恢复间隔设置
-      const savedInterval = localStorage.getItem('zhihu_interval')
-      if (savedInterval) {
-        interval.value = parseInt(savedInterval)
-      }
-
       showStatus('✅ 配置已恢复', 'info', 2000)
     } catch (e) {
       console.error('加载配置失败:', e)
@@ -348,24 +317,50 @@ const loadConfig = () => {
   }
 }
 
-// GitHub 操作
-const testGitHub = async () => {
-  if (!config.value.token) {
-    showError('请先输入 GitHub Token')
+// GitHub API 调用
+const getGitHubApiUrl = () => {
+  return `https://api.github.com/repos/${config.value.username}/${config.value.repo}/contents/${config.value.dataPath}`
+}
+
+const fetchFromGitHub = async (): Promise<HotSnapshot[]> => {
+  const url = getGitHubApiUrl()
+  const response = await fetch(url)
+
+  if (!response.ok) {
+    if (response.status === 404) {
+      throw new Error('数据文件不存在，请先运行 GitHub Actions 抓取数据')
+    }
+    if (response.status === 403) {
+      throw new Error('API 限制，请稍后再试（或使用个人 Token）')
+    }
+    throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+  }
+
+  const data = await response.json()
+  const content = atob(data.content) // Base64 解码
+  return JSON.parse(content)
+}
+
+// 测试连接
+const testConnection = async () => {
+  if (!config.value.username || !config.value.repo) {
+    showError('请先输入 GitHub 用户名和仓库名')
     return
   }
 
   isTesting.value = true
-  clearError()
+  error.value = ''
 
   try {
-    const storage = initGitHubStorage(config.value)
-    const success = await storage.testConnection()
+    const url = getGitHubApiUrl()
+    const response = await fetch(url)
 
-    if (success) {
+    if (response.status === 200) {
       showStatus('✅ GitHub 连接成功', 'success')
+    } else if (response.status === 404) {
+      showError('数据文件不存在（data/zhihu-hot.json），请先运行 GitHub Actions')
     } else {
-      showError('GitHub 连接失败，请检查 Token 和仓库权限')
+      showError(`连接失败: HTTP ${response.status}`)
     }
   } catch (e) {
     showError(`测试失败: ${e instanceof Error ? e.message : '未知错误'}`)
@@ -374,30 +369,48 @@ const testGitHub = async () => {
   }
 }
 
-const loadFromGitHub = async () => {
-  if (!githubStorage) {
+// 从 GitHub 加载数据
+const loadData = async () => {
+  if (!isConfigured.value) {
     showError('请先配置 GitHub 信息')
     return
   }
 
   isLoading.value = true
-  clearError()
+  error.value = ''
+  showStatus('🔄 正在从 GitHub 加载...', 'info', 0)
 
   try {
-    const data = await githubStorage.readData()
+    // 检查缓存（5分钟内有效）
+    const cacheKey = 'zhihu_cache_data'
+    const cacheTimeKey = 'zhihu_cache_timestamp'
+    const cached = localStorage.getItem(cacheKey)
+    const cacheTime = localStorage.getItem(cacheTimeKey)
+
+    if (cached && cacheTime) {
+      const age = Date.now() - parseInt(cacheTime)
+      if (age < 5 * 60 * 1000) { // 5分钟
+        console.log('使用缓存数据')
+        const data = JSON.parse(cached)
+        processLoadedData(data)
+        showStatus('✅ 从缓存加载成功', 'success')
+        isLoading.value = false
+        return
+      }
+    }
+
+    // 从 GitHub 获取
+    const data = await fetchFromGitHub()
 
     if (data.length > 0) {
-      snapshots.value = data
+      // 保存到缓存
+      localStorage.setItem(cacheKey, JSON.stringify(data))
+      localStorage.setItem(cacheTimeKey, Date.now().toString())
 
-      // 显示最新的快照作为当前数据
-      if (data[0].items) {
-        currentHot.value = data[0].items
-        lastFetchTime.value = data[0].timestamp
-      }
-
-      showStatus(`✅ 成功加载 ${data.length} 条历史记录`, 'success')
+      processLoadedData(data)
+      showStatus(`✅ 加载成功: ${data.length} 条历史记录`, 'success')
     } else {
-      showStatus('ℹ️ GitHub 上暂无数据，请先手动抓取', 'info')
+      showStatus('ℹ️ 暂无数据', 'info')
     }
   } catch (e) {
     showError(`加载失败: ${e instanceof Error ? e.message : '未知错误'}`)
@@ -406,105 +419,117 @@ const loadFromGitHub = async () => {
   }
 }
 
-// 抓取操作
-const manualFetch = async () => {
-  if (!githubStorage) {
+// 处理加载的数据
+const processLoadedData = (data: HotSnapshot[]) => {
+  snapshots.value = data
+
+  // 显示最新的快照作为当前数据
+  if (data[0]?.items) {
+    currentHot.value = data[0].items
+    lastFetchTime.value = data[0].timestamp
+  }
+}
+
+// 加载最新
+const loadLatest = async () => {
+  if (!isConfigured.value) {
+    showError('请先配置 GitHub 信息')
+    return
+  }
+
+  isLoading.value = true
+  error.value = ''
+  showStatus('🔄 正在加载最新数据...', 'info', 0)
+
+  try {
+    const data = await fetchFromGitHub()
+
+    if (data.length > 0) {
+      currentHot.value = data[0].items
+      lastFetchTime.value = data[0].timestamp
+      showStatus(`✅ 最新数据: ${data[0].formattedTime}`, 'success')
+    } else {
+      showStatus('ℹ️ 暂无数据', 'info')
+    }
+  } catch (e) {
+    showError(`加载失败: ${e instanceof Error ? e.message : '未知错误'}`)
+  } finally {
+    isLoading.value = false
+  }
+}
+
+// 显示统计
+const showStats = async () => {
+  if (!isConfigured.value) {
+    showError('请先配置 GitHub 信息')
+    return
+  }
+
+  try {
+    const data = await fetchFromGitHub()
+
+    if (data.length === 0) {
+      alert('暂无数据')
+      return
+    }
+
+    const totalItems = data.reduce((sum, s) => sum + s.count, 0)
+    const firstRecord = data[data.length - 1]?.formattedTime || '无'
+    const lastRecord = data[0]?.formattedTime || '无'
+
+    const message = `
+📊 统计信息:
+- 总快照数: ${data.length}
+- 总条目数: ${totalItems}
+- 首次记录: ${firstRecord}
+- 最后记录: ${lastRecord}
+    `.trim()
+
+    alert(message)
+  } catch (e) {
+    showError(`获取统计失败: ${e instanceof Error ? e.message : '未知错误'}`)
+  }
+}
+
+// 触发手动抓取（通过 GitHub Actions）
+const triggerManualFetch = async () => {
+  if (!isConfigured.value) {
     showError('请先配置 GitHub 信息')
     return
   }
 
   isFetching.value = true
-  clearError()
-  showStatus('🔄 正在抓取数据...', 'info', 0)
+  error.value = ''
+  showStatus('🔄 正在触发 GitHub Actions...', 'info', 0)
 
   try {
-    // 执行抓取
-    const items = await zhihuCrawler.fetchHotList()
+    // 方法 1: 通过 GitHub API 触发 Workflow（需要 Token）
+    // 方法 2: 提示用户手动触发
+    const message = `
+⚠️ 手动触发抓取
 
-    if (items.length > 0) {
-      currentHot.value = items
-      lastFetchTime.value = Date.now()
+由于 GitHub 安全限制，前端无法直接触发 Actions。
 
-      // 创建快照
-      const snapshot: HotSnapshot = {
-        id: `snapshot-${Date.now()}`,
-        timestamp: Date.now(),
-        formattedTime: new Date().toLocaleString('zh-CN'),
-        items: items,
-        count: items.length
-      }
+请按以下步骤操作：
 
-      // 保存到 GitHub
-      const success = await githubStorage.addSnapshot(snapshot)
+1. 访问你的 GitHub 仓库
+2. 进入 Actions 标签页
+3. 找到"自动抓取知乎热榜"
+4. 点击"Run workflow"
+5. 等待 10-20 秒
+6. 返回页面点击"从 GitHub 加载"
 
-      if (success) {
-        showStatus(`✅ 抓取成功并保存 (${items.length} 条)`, 'success')
+或者等待下一次自动抓取（每30分钟）
 
-        // 更新历史记录
-        snapshots.value.unshift(snapshot)
-        if (snapshots.value.length > 50) {
-          snapshots.value = snapshots.value.slice(0, 50)
-        }
-      } else {
-        showStatus(`⚠️ 抓取成功但保存失败 (${items.length} 条)`, 'warning')
-      }
-    } else {
-      showError('未获取到数据')
-    }
+提示：你也可以添加 GitHub Token 来自动触发
+    `.trim()
+
+    alert(message)
+    showStatus('ℹ️ 请手动触发 GitHub Actions', 'info')
   } catch (e) {
-    showError(`抓取失败: ${e instanceof Error ? e.message : '未知错误'}`)
+    showError(`触发失败: ${e instanceof Error ? e.message : '未知错误'}`)
   } finally {
     isFetching.value = false
-  }
-}
-
-// 自动抓取控制
-const toggleAutoFetch = () => {
-  if (autoFetchEnabled.value) {
-    // 停止
-    if (scheduler) {
-      scheduler.stop()
-    }
-    autoFetchEnabled.value = false
-    nextFetchTime.value = ''
-    showStatus('⏰ 自动抓取已停止', 'warning')
-  } else {
-    // 启动
-    if (!githubStorage) {
-      showError('请先配置 GitHub 信息')
-      return
-    }
-
-    const scheduleConfig: ScheduleConfig = {
-      enabled: true,
-      interval: interval.value,
-      nextFetch: Date.now() + interval.value * 60 * 1000
-    }
-
-    initScheduler(scheduleConfig)
-
-    if (scheduler) {
-      scheduler.start()
-      autoFetchEnabled.value = true
-      updateNextFetchDisplay()
-      showStatus(`⏰ 自动抓取已启动 (${interval.value} 分钟间隔)`, 'success')
-
-      // 保存间隔设置
-      localStorage.setItem('zhihu_interval', interval.value.toString())
-    }
-  }
-}
-
-const updateNextFetchDisplay = () => {
-  if (scheduler) {
-    const status = scheduler.getStatus()
-    if (status.nextFetch) {
-      const time = new Date(status.nextFetch)
-      nextFetchTime.value = time.toLocaleTimeString('zh-CN')
-
-      // 每秒更新一次倒计时
-      setTimeout(updateNextFetchDisplay, 1000)
-    }
   }
 }
 
@@ -519,35 +544,23 @@ const toggleSnapshot = (id: string) => {
 
 // 清空历史
 const clearHistory = () => {
-  if (confirm('确定要清空所有历史记录吗？（仅本地，不影响 GitHub 上的数据）')) {
+  if (confirm('确定要清空所有历史记录吗？（仅本地缓存，不影响 GitHub 上的数据）')) {
     snapshots.value = []
     expandedSnapshots.value.clear()
     showStatus('✅ 历史记录已清空', 'info')
   }
 }
 
+// 清除缓存
+const clearCache = () => {
+  localStorage.removeItem('zhihu_cache_data')
+  localStorage.removeItem('zhihu_cache_timestamp')
+  showStatus('✅ 缓存已清除', 'success')
+}
+
 // 生命周期
 onMounted(() => {
   loadConfig()
-
-  // 检查是否有保存的自动抓取状态
-  const savedAutoFetch = localStorage.getItem('zhihu_auto_fetch')
-  if (savedAutoFetch === 'true' && isConfigured.value) {
-    // 延迟启动，避免初始化冲突
-    setTimeout(() => {
-      toggleAutoFetch()
-    }, 1000)
-  }
-})
-
-onUnmounted(() => {
-  // 清理定时器
-  if (scheduler) {
-    scheduler.stop()
-  }
-
-  // 保存自动抓取状态
-  localStorage.setItem('zhihu_auto_fetch', autoFetchEnabled.value.toString())
 })
 </script>
 
@@ -594,17 +607,20 @@ onUnmounted(() => {
   opacity: 0.7;
 }
 
-.hint {
-  color: #718096;
-  font-size: 0.8em;
-  margin-top: 3px;
-  display: block;
-}
-
 .config-actions {
   display: flex;
   gap: 10px;
   margin-top: 15px;
+  flex-wrap: wrap;
+}
+
+.config-hint {
+  margin-top: 10px;
+  padding: 10px;
+  background: #e6fffa;
+  border-radius: 6px;
+  color: #234e52;
+  font-size: 0.85em;
 }
 
 /* 控制面板 */
@@ -623,6 +639,31 @@ onUnmounted(() => {
   margin-bottom: 15px;
 }
 
+.btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.95em;
+}
+
+.btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: #667eea;
+  color: white;
+}
+
 .btn-success {
   background: #48bb78;
   color: white;
@@ -633,33 +674,35 @@ onUnmounted(() => {
   color: white;
 }
 
+.btn-warning {
+  background: #ed8936;
+  color: white;
+}
+
+.btn-danger {
+  background: #e53e3e;
+  color: white;
+}
+
+.btn-secondary {
+  background: #718096;
+  color: white;
+}
+
 .btn-sm {
   padding: 6px 12px;
   font-size: 0.85em;
 }
 
-.schedule-config {
+.cache-info {
   display: flex;
-  align-items: center;
   gap: 10px;
-  flex-wrap: wrap;
-}
-
-.schedule-config label {
-  font-weight: 600;
-  color: #2d3748;
-}
-
-.schedule-config input {
-  padding: 6px 10px;
-  border: 2px solid #e2e8f0;
-  border-radius: 6px;
-}
-
-.next-fetch {
-  color: #667eea;
-  font-weight: 600;
-  margin-left: 10px;
+  align-items: center;
+  padding: 10px;
+  background: #f7fafc;
+  border-radius: 8px;
+  font-size: 0.85em;
+  color: #4a5568;
 }
 
 /* 状态栏 */
@@ -937,6 +980,7 @@ onUnmounted(() => {
   padding: 15px;
   border-radius: 8px;
   margin-top: 20px;
+  text-align: left;
 }
 
 /* 响应式 */
@@ -952,11 +996,6 @@ onUnmounted(() => {
 
   .control-group button {
     width: 100%;
-  }
-
-  .schedule-config {
-    flex-direction: column;
-    align-items: flex-start;
   }
 
   .hot-item {
@@ -978,6 +1017,12 @@ onUnmounted(() => {
     flex-direction: column;
     gap: 5px;
     align-items: flex-start;
+  }
+
+  .cache-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
   }
 }
 </style>
