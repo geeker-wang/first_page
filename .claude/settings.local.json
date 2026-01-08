@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "*",
-      "Bash(findstr:*)"
+      "Bash(findstr:*)",
+      "Bash(git config:*)",
+      "Bash(git rm:*)"
     ]
   }
 }
