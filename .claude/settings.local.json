@@ -6,7 +6,8 @@
       "Bash(git config:*)",
       "Bash(git rm:*)",
       "Bash(ping:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(timeout:*)"
     ]
   }
 }
