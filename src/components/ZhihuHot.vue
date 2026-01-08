@@ -337,7 +337,16 @@ const fetchFromGitHub = async (): Promise<HotSnapshot[]> => {
   }
 
   const data = await response.json()
-  const content = atob(data.content) // Base64 解码
+
+  // 正确解码 Base64 + UTF-8
+  const binaryString = atob(data.content)
+  const bytes = new Uint8Array(binaryString.length)
+  for (let i = 0; i < binaryString.length; i++) {
+    bytes[i] = binaryString.charCodeAt(i)
+  }
+  const decoder = new TextDecoder('utf-8')
+  const content = decoder.decode(bytes)
+
   return JSON.parse(content)
 }
 
