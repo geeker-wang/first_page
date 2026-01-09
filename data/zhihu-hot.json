@@ -1,5 +1,113 @@
 [
   {
+    "id": "snapshot-1767958513411",
+    "timestamp": 1767958513411,
+    "formattedTime": "2026/1/9 11:35:13",
+    "count": 10,
+    "items": [
+      {
+        "id": "mock-1767958513411-0",
+        "title": "如何看待某科技公司发布的新产品？",
+        "description": "这是一条模拟的热榜数据，用于测试和演示",
+        "heat": 539563,
+        "url": "https://www.zhihu.com/question/mock-0",
+        "timestamp": 1767958513411,
+        "fetchTime": "2026/1/9 11:35:13",
+        "rank": 1
+      },
+      {
+        "id": "mock-1767958513411-1",
+        "title": "2026年最值得期待的电影有哪些？",
+        "description": "这是一条模拟的热榜数据，用于测试和演示",
+        "heat": 883275,
+        "url": "https://www.zhihu.com/question/mock-1",
+        "timestamp": 1767958513411,
+        "fetchTime": "2026/1/9 11:35:13",
+        "rank": 2
+      },
+      {
+        "id": "mock-1767958513411-2",
+        "title": "如何评价某社会热点事件？",
+        "description": "这是一条模拟的热榜数据，用于测试和演示",
+        "heat": 414017,
+        "url": "https://www.zhihu.com/question/mock-2",
+        "timestamp": 1767958513411,
+        "fetchTime": "2026/1/9 11:35:13",
+        "rank": 3
+      },
+      {
+        "id": "mock-1767958513411-3",
+        "title": "为什么年轻人越来越不愿意结婚？",
+        "description": "这是一条模拟的热榜数据，用于测试和演示",
+        "heat": 787245,
+        "url": "https://www.zhihu.com/question/mock-3",
+        "timestamp": 1767958513411,
+        "fetchTime": "2026/1/9 11:35:13",
+        "rank": 4
+      },
+      {
+        "id": "mock-1767958513411-4",
+        "title": "某城市推出新政策，你怎么看？",
+        "description": "这是一条模拟的热榜数据，用于测试和演示",
+        "heat": 992121,
+        "url": "https://www.zhihu.com/question/mock-4",
+        "timestamp": 1767958513411,
+        "fetchTime": "2026/1/9 11:35:13",
+        "rank": 5
+      },
+      {
+        "id": "mock-1767958513411-5",
+        "title": "人工智能会取代人类工作吗？",
+        "description": "这是一条模拟的热榜数据，用于测试和演示",
+        "heat": 587436,
+        "url": "https://www.zhihu.com/question/mock-5",
+        "timestamp": 1767958513411,
+        "fetchTime": "2026/1/9 11:35:13",
+        "rank": 6
+      },
+      {
+        "id": "mock-1767958513411-6",
+        "title": "如何评价某明星的新作品？",
+        "description": "这是一条模拟的热榜数据，用于测试和演示",
+        "heat": 487882,
+        "url": "https://www.zhihu.com/question/mock-6",
+        "timestamp": 1767958513411,
+        "fetchTime": "2026/1/9 11:35:13",
+        "rank": 7
+      },
+      {
+        "id": "mock-1767958513411-7",
+        "title": "2026年经济形势分析",
+        "description": "这是一条模拟的热榜数据，用于测试和演示",
+        "heat": 31668,
+        "url": "https://www.zhihu.com/question/mock-7",
+        "timestamp": 1767958513411,
+        "fetchTime": "2026/1/9 11:35:13",
+        "rank": 8
+      },
+      {
+        "id": "mock-1767958513411-8",
+        "title": "某大学教授发表争议言论",
+        "description": "这是一条模拟的热榜数据，用于测试和演示",
+        "heat": 381155,
+        "url": "https://www.zhihu.com/question/mock-8",
+        "timestamp": 1767958513411,
+        "fetchTime": "2026/1/9 11:35:13",
+        "rank": 9
+      },
+      {
+        "id": "mock-1767958513411-9",
+        "title": "如何选择适合自己的职业？",
+        "description": "这是一条模拟的热榜数据，用于测试和演示",
+        "heat": 769284,
+        "url": "https://www.zhihu.com/question/mock-9",
+        "timestamp": 1767958513411,
+        "fetchTime": "2026/1/9 11:35:13",
+        "rank": 10
+      }
+    ]
+  },
+  {
     "id": "snapshot-1767955947394",
     "timestamp": 1767955947394,
     "formattedTime": "2026/1/9 10:52:27",
